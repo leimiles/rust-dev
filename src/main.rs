@@ -1,4 +1,6 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]  // Hide console window on Windows in release mode
+//! Hide console window on Windows in release mode
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use eframe::egui;
 use std::fs;
 use std::path::PathBuf;
@@ -27,9 +29,20 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Current Directory Files:");
-            for file in &self.files {
-                ui.label(file);
+
+            if ui.button("Refresh").clicked() {
+                self.files = read_current_dir();
             }
+
+            ui.separator();
+
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    for file in &self.files {
+                        ui.label(file);
+                    }
+                });
         });
     }
 }
@@ -40,7 +53,11 @@ fn read_current_dir() -> Vec<String> {
         for entry in dir.flatten() {
             let path: PathBuf = entry.path();
             if let Some(name) = path.file_name() {
-                entries.push(name.to_string_lossy().to_string());
+                let mut display_name = name.to_string_lossy().to_string();
+                if path.is_dir() {
+                    display_name = format!("[DIR] {}", display_name);
+                }
+                entries.push(display_name);
             }
         }
     }
